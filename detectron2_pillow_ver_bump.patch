@@ -1,0 +1,26 @@
+From d3f4cb5ab5884cecc7147599c639fe578dc2c5a3 Mon Sep 17 00:00:00 2001
+From: Ujjwal <ujjwalnur@outlook.com>
+Date: Mon, 27 May 2024 09:22:36 +0200
+Subject: [PATCH] Transitioned from Image.Linear to Image.Bilinear in Pillow to
+ support newer versions starting from 10.3.01
+
+---
+ detectron2/data/transforms/transform.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/detectron2/data/transforms/transform.py b/detectron2/data/transforms/transform.py
+index de44b99..46769a2 100644
+--- a/detectron2/data/transforms/transform.py
++++ b/detectron2/data/transforms/transform.py
+@@ -43,7 +43,7 @@ class ExtentTransform(Transform):
+     See: https://pillow.readthedocs.io/en/latest/PIL.html#PIL.ImageTransform.ExtentTransform
+     """
+ 
+-    def __init__(self, src_rect, output_size, interp=Image.LINEAR, fill=0):
++    def __init__(self, src_rect, output_size, interp=Image.BILINEAR, fill=0):
+         """
+         Args:
+             src_rect (x0, y0, x1, y1): src coordinates
+-- 
+2.45.0
+
