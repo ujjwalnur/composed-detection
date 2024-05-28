@@ -1,6 +1,6 @@
-from .detr import DETR
-from .transformer import (
-    DetrTransformerEncoder,
-    DetrTransformerDecoder,
-    DetrTransformer,
+from .composed_detr import ComposedDETR
+from .composed_detr_transformer import (
+    ComposedDetrTransformerEncoder,
+    ComposedDetrTransformerDecoder,
+    ComposedDetrTransformer,
 )

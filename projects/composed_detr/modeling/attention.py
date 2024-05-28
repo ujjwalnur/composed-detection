@@ -159,7 +159,8 @@ class DynamicallyComposedMultiHeadAttention(nn.Module):
         """
         query = query.view(query.size(0), self._num_heads, -1, self._head_dim)
         key = key.view(key.size(0), self._num_heads, -1, self._head_dim)
-        _attn = torch.einsum('B H T D, B H S D -> B H T S', query, key)
+        scale = self._head_dim ** 0.5  # Normalization factor
+        _attn = torch.einsum('B H T D, B H S D -> B H T S', query, key) /scale
         return _attn
 
     def _dynamic_weight_projection(self, query: torch.Tensor, key: torch.Tensor,
@@ -182,10 +183,10 @@ class DynamicallyComposedMultiHeadAttention(nn.Module):
 if __name__ == "__main__":
     model = DynamicallyComposedMultiHeadAttention(
         num_heads=8,
-        model_dim=512,
+        model_dim=2048,
 
     )
-    X_input = torch.randn((5, 49, 512))
+    X_input = torch.randn((5, 49, 2048))
 
     output = model(X_input, X_input, X_input)
     print(output.size())
