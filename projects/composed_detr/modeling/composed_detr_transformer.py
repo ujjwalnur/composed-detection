@@ -19,7 +19,7 @@ import torch.nn as nn
 from detrex.layers import FFN, BaseTransformerLayer, MultiheadAttention, TransformerLayerSequence
 
 
-class DetrTransformerEncoder(TransformerLayerSequence):
+class ComposedDetrTransformerEncoder(TransformerLayerSequence):
     def __init__(
         self,
         embed_dim: int = 256,
@@ -31,7 +31,7 @@ class DetrTransformerEncoder(TransformerLayerSequence):
         post_norm: bool = True,
         batch_first: bool = False,
     ):
-        super(DetrTransformerEncoder, self).__init__(
+        super(ComposedDetrTransformerEncoder, self).__init__(
             transformer_layers=BaseTransformerLayer(
                 attn=MultiheadAttention(
                     embed_dim=embed_dim,
@@ -90,7 +90,7 @@ class DetrTransformerEncoder(TransformerLayerSequence):
         return query
 
 
-class DetrTransformerDecoder(TransformerLayerSequence):
+class ComposedDetrTransformerDecoder(TransformerLayerSequence):
     def __init__(
         self,
         embed_dim: int = 256,
@@ -103,7 +103,7 @@ class DetrTransformerDecoder(TransformerLayerSequence):
         return_intermediate: bool = True,
         batch_first: bool = False,
     ):
-        super(DetrTransformerDecoder, self).__init__(
+        super(ComposedDetrTransformerDecoder, self).__init__(
             transformer_layers=BaseTransformerLayer(
                 attn=MultiheadAttention(
                     embed_dim=embed_dim,
@@ -186,9 +186,9 @@ class DetrTransformerDecoder(TransformerLayerSequence):
         return torch.stack(intermediate)
 
 
-class DetrTransformer(nn.Module):
+class ComposedDetrTransformer(nn.Module):
     def __init__(self, encoder=None, decoder=None):
-        super(DetrTransformer, self).__init__()
+        super(ComposedDetrTransformer, self).__init__()
         self.encoder = encoder
         self.decoder = decoder
         self.embed_dim = self.encoder.embed_dim

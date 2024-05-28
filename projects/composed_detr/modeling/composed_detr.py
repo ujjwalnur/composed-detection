@@ -31,7 +31,7 @@ from detectron2.modeling import detector_postprocess
 from detectron2.structures import Boxes, ImageList, Instances
 
 
-class DETR(nn.Module):
+class ComposedDETR(nn.Module):
     """Implement DETR in `End-to-End Object Detection with Transformers
     <https://arxiv.org/abs/2005.12872>`_
 
