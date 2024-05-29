@@ -18,7 +18,7 @@ import torch.nn as nn
 
 from detrex.layers import FFN, BaseTransformerLayer, TransformerLayerSequence
 from .attention import DynamicallyComposedMultiHeadAttentionWrapper
-
+import einops
 
 class ComposedDetrTransformerEncoder(TransformerLayerSequence):
     def __init__(
@@ -31,7 +31,7 @@ class ComposedDetrTransformerEncoder(TransformerLayerSequence):
             num_layers: int = 6,
             projection_rank: int = 2,
             post_norm: bool = True,
-            batch_first: bool = False,
+            # batch_first: bool = True,
     ):
         super(ComposedDetrTransformerEncoder, self).__init__(
             transformer_layers=BaseTransformerLayer(
@@ -104,7 +104,7 @@ class ComposedDetrTransformerDecoder(TransformerLayerSequence):
             projection_rank : int=2,
             post_norm: bool = True,
             return_intermediate: bool = True,
-            batch_first: bool = False,
+            # batch_first: bool = False,
     ):
         super(ComposedDetrTransformerDecoder, self).__init__(
             transformer_layers=BaseTransformerLayer(
@@ -205,10 +205,12 @@ class ComposedDetrTransformer(nn.Module):
 
     def forward(self, x, mask, query_embed, pos_embed):
         bs, c, h, w = x.shape
-        x = x.view(bs, c, -1).permute(2, 0, 1)  # [bs, c, h, w] -> [h*w, bs, c]
-        pos_embed = pos_embed.view(bs, c, -1).permute(2, 0, 1)
+        # x = x.view(bs, c, -1).permute(2, 0, 1)  # [bs, c, h, w] -> [h*w, bs, c]
+        x = einops.rearrange(x,'B C H W -> B C (H W)')
+        # pos_embed = pos_embed.view(bs, c, -1).permute(2, 0, 1)
+        pos_embed = pos_embed.view(bs, c, -1)
         query_embed = query_embed.unsqueeze(1).repeat(
-            1, bs, 1
+             bs, 1,  1
         )  # [num_query, dim] -> [num_query, bs, dim]
         mask = mask.view(bs, -1)  # [bs, h, w] -> [bs, h*w]
         memory = self.encoder(
