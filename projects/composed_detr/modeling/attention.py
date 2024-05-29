@@ -14,6 +14,7 @@ class DynamicallyComposedMultiHeadAttention(nn.Module):
                  model_dim: int,
                  projection_rank: int = 2,
                  use_bias: bool = True,
+                 dropout: float = 0.0,
                  ):
         super(DynamicallyComposedMultiHeadAttention, self).__init__()
         if model_dim % num_heads != 0:
@@ -29,6 +30,7 @@ class DynamicallyComposedMultiHeadAttention(nn.Module):
         self._W_value = nn.Linear(model_dim, model_dim, bias=self._use_bias)
         self._pre_compose_params = nn.ParameterDict(self._initialize_compose_params())
         self._post_compose_params = nn.ParameterDict(self._initialize_compose_params())
+        self._dropout = nn.Dropout(dropout)
 
     def _initialize_compose_params(self):
         out = dict()
@@ -105,6 +107,7 @@ class DynamicallyComposedMultiHeadAttention(nn.Module):
         attn_feature_matrix = self._compose(attn_information=attn_feature_matrix,
                                             query=query, key=key, projection_type='pre')
         attn_probs = attn_feature_matrix.softmax(dim=-1)
+        attn_probs = self._dropout(attn_probs)
         attn_probs = self._compose(attn_information=attn_probs, query=query, key=key,
                                    projection_type='post')
 
