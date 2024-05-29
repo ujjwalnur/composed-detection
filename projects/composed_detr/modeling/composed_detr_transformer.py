@@ -206,12 +206,15 @@ class ComposedDetrTransformer(nn.Module):
     def forward(self, x, mask, query_embed, pos_embed):
         bs, c, h, w = x.shape
         # x = x.view(bs, c, -1).permute(2, 0, 1)  # [bs, c, h, w] -> [h*w, bs, c]
-        x = einops.rearrange(x,'B C H W -> B C (H W)')
+        # x = einops.rearrange(x,'B C H W -> B (H W) C')
+        x = x.view(bs, -1, c)
         # pos_embed = pos_embed.view(bs, c, -1).permute(2, 0, 1)
-        pos_embed = pos_embed.view(bs, c, -1)
-        query_embed = query_embed.unsqueeze(1).repeat(
-             bs, 1,  1
-        )  # [num_query, dim] -> [num_query, bs, dim]
+        pos_embed = pos_embed.reshape(bs, -1, c)
+        # pos_embed = pos_embed.view(bs,  -1, c)
+        # query_embed = query_embed.unsqueeze(1).repeat(
+        #      bs, 1,  1
+        # )  # [num_query, dim] -> [num_query, bs, dim]
+        query_embed = query_embed.unsqueeze(0).repeat(bs, 1, 1)
         mask = mask.view(bs, -1)  # [bs, h, w] -> [bs, h*w]
         memory = self.encoder(
             query=x,
@@ -220,7 +223,15 @@ class ComposedDetrTransformer(nn.Module):
             query_pos=pos_embed,
             query_key_padding_mask=mask,
         )
+        # print(memory)
+        # print(memory.size())
+        # print(memory.size())
+
         target = torch.zeros_like(query_embed)
+        # print(target.size())
+        # print(pos_embed.size())
+        # print(query_embed.size())
+        # print(mask.size())
         decoder_output = self.decoder(
             query=target,
             key=memory,
@@ -229,6 +240,7 @@ class ComposedDetrTransformer(nn.Module):
             query_pos=query_embed,
             key_padding_mask=mask,
         )
-        decoder_output = decoder_output.transpose(1, 2)
-        memory = memory.permute(1, 2, 0).reshape(bs, c, h, w)
+        # decoder_output = decoder_output.transpose(1, 2)
+        # memory = memory.permute(1, 2, 0).reshape(bs, c, h, w)
+        memory = memory.reshape(bs, c ,h, w)
         return decoder_output, memory

@@ -6,7 +6,6 @@ It was written at Universitat Hildesheim on May 29, 2024.
 All rights reserved.
 """
 
-
 import logging
 from typing import Literal, Optional
 
@@ -309,6 +308,7 @@ class DynamicallyComposedMultiHeadAttentionWrapper(nn.Module):
             Forward function for the DynamicallyComposedMultiHeadAttentionWrapper.
 
     """
+
     def __init__(
             self,
             embed_dim: int,
@@ -387,8 +387,9 @@ class DynamicallyComposedMultiHeadAttentionWrapper(nn.Module):
             attn_mask=attn_mask,
             key_padding_mask=key_padding_mask,
         )[0]
-
-        return identity + self.proj_drop(out)
+        out = identity + self.proj_drop(out)
+        print(out)
+        return out
 
 
 if __name__ == "__main__":
@@ -415,7 +416,7 @@ if __name__ == "__main__":
     )
     X_input = torch.randn((5, 49, 2048))
 
-    output = model(X_input, key_padding_mask=torch.rand(5,49)>0.5)
+    output = model(X_input, key_padding_mask=torch.rand(5, 49) > 0.5)
     print(output.size())
     # for key, value in output.items():
     #     print(f"Shape of tensor at key '{key}': {value.shape}")
