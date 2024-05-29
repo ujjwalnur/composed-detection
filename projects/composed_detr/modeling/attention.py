@@ -16,6 +16,7 @@ class DynamicallyComposedMultiHeadAttention(nn.Module):
                  use_bias: bool = True,
                  dropout: float = 0.0,
                  add_zero_attn: bool = False,
+                 add_bias_kv: bool = False,
                  ):
         super(DynamicallyComposedMultiHeadAttention, self).__init__()
         if model_dim % num_heads != 0:
@@ -33,6 +34,10 @@ class DynamicallyComposedMultiHeadAttention(nn.Module):
         self._post_compose_params = nn.ParameterDict(self._initialize_compose_params())
         self._dropout = nn.Dropout(dropout)
         self._add_zero_attn = add_zero_attn  # Initialize add_zero_attn
+        self._add_bias_kv = add_bias_kv
+        if self._add_bias_kv:
+            self._bias_k = nn.Parameter(torch.zeros((1, 1, model_dim)))
+            self._bias_v = nn.Parameter(torch.zeros((1, 1, model_dim)))
 
     def _initialize_compose_params(self):
         out = dict()
@@ -92,6 +97,9 @@ class DynamicallyComposedMultiHeadAttention(nn.Module):
 
     def forward(self, query: torch.Tensor, key: torch.Tensor, value: torch.Tensor, key_padding_mask=None,
                 attn_mask=None):
+        if self._add_bias_kv:
+            key = key + self._bias_k
+            value = value + self._bias_v
         query_projected = self._W_query(query)
         key_projected = self._W_key(key)
         value = self._W_value(value)
