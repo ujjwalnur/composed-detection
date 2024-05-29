@@ -17,27 +17,29 @@ import torch
 import torch.nn as nn
 
 from detrex.layers import FFN, BaseTransformerLayer, MultiheadAttention, TransformerLayerSequence
+from .attention import DynamicallyComposedMultiHeadAttentionWrapper
 
 
 class ComposedDetrTransformerEncoder(TransformerLayerSequence):
     def __init__(
-        self,
-        embed_dim: int = 256,
-        num_heads: int = 8,
-        attn_dropout: float = 0.1,
-        feedforward_dim: int = 2048,
-        ffn_dropout: float = 0.1,
-        num_layers: int = 6,
-        post_norm: bool = True,
-        batch_first: bool = False,
+            self,
+            embed_dim: int = 256,
+            num_heads: int = 8,
+            attn_dropout: float = 0.1,
+            feedforward_dim: int = 2048,
+            ffn_dropout: float = 0.1,
+            num_layers: int = 6,
+            projection_rank: int = 2,
+            post_norm: bool = True,
+            batch_first: bool = False,
     ):
         super(ComposedDetrTransformerEncoder, self).__init__(
             transformer_layers=BaseTransformerLayer(
-                attn=MultiheadAttention(
+                attn=DynamicallyComposedMultiHeadAttentionWrapper(
                     embed_dim=embed_dim,
                     num_heads=num_heads,
                     attn_drop=attn_dropout,
-                    batch_first=batch_first,
+                    projection_rank=projection_rank
                 ),
                 ffn=FFN(
                     embed_dim=embed_dim,
@@ -60,16 +62,16 @@ class ComposedDetrTransformerEncoder(TransformerLayerSequence):
             self.post_norm_layer = None
 
     def forward(
-        self,
-        query,
-        key,
-        value,
-        query_pos=None,
-        key_pos=None,
-        attn_masks=None,
-        query_key_padding_mask=None,
-        key_padding_mask=None,
-        **kwargs,
+            self,
+            query,
+            key,
+            value,
+            query_pos=None,
+            key_pos=None,
+            attn_masks=None,
+            query_key_padding_mask=None,
+            key_padding_mask=None,
+            **kwargs,
     ):
 
         for layer in self.layers:
@@ -92,24 +94,25 @@ class ComposedDetrTransformerEncoder(TransformerLayerSequence):
 
 class ComposedDetrTransformerDecoder(TransformerLayerSequence):
     def __init__(
-        self,
-        embed_dim: int = 256,
-        num_heads: int = 8,
-        attn_dropout: float = 0.1,
-        feedforward_dim: int = 2048,
-        ffn_dropout: float = 0.1,
-        num_layers: int = 6,
-        post_norm: bool = True,
-        return_intermediate: bool = True,
-        batch_first: bool = False,
+            self,
+            embed_dim: int = 256,
+            num_heads: int = 8,
+            attn_dropout: float = 0.1,
+            feedforward_dim: int = 2048,
+            ffn_dropout: float = 0.1,
+            num_layers: int = 6,
+            projection_rank : int=2,
+            post_norm: bool = True,
+            return_intermediate: bool = True,
+            batch_first: bool = False,
     ):
         super(ComposedDetrTransformerDecoder, self).__init__(
             transformer_layers=BaseTransformerLayer(
-                attn=MultiheadAttention(
+                attn=DynamicallyComposedMultiHeadAttentionWrapper(
                     embed_dim=embed_dim,
                     num_heads=num_heads,
                     attn_drop=attn_dropout,
-                    batch_first=batch_first,
+                    projection_rank=projection_rank
                 ),
                 ffn=FFN(
                     embed_dim=embed_dim,
@@ -132,16 +135,16 @@ class ComposedDetrTransformerDecoder(TransformerLayerSequence):
             self.post_norm_layer = None
 
     def forward(
-        self,
-        query,
-        key,
-        value,
-        query_pos=None,
-        key_pos=None,
-        attn_masks=None,
-        query_key_padding_mask=None,
-        key_padding_mask=None,
-        **kwargs,
+            self,
+            query,
+            key,
+            value,
+            query_pos=None,
+            key_pos=None,
+            attn_masks=None,
+            query_key_padding_mask=None,
+            key_padding_mask=None,
+            **kwargs,
     ):
 
         if not self.return_intermediate:
