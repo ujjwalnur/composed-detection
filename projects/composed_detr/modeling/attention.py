@@ -152,6 +152,13 @@ class DynamicallyComposedMultiHeadAttention(nn.Module):
 
         attn_feature_matrix = self._compute_attention_logits(query=query_projected, key=key_projected)
 
+
+
+
+        uncomposed_attention = attn_feature_matrix.softmax(dim=-1)
+
+        attn_feature_matrix = self._compose(attn_information=attn_feature_matrix,
+                                            query=query, key=key, projection_type='pre')
         if key_padding_mask is not None:
             attn_feature_matrix.masked_fill_(key_padding_mask.unsqueeze(1).unsqueeze(2), float('-inf'))
 
@@ -160,11 +167,6 @@ class DynamicallyComposedMultiHeadAttention(nn.Module):
                 attn_feature_matrix.masked_fill_(attn_mask.unsqueeze(1), float('-inf'))
             else:
                 attn_feature_matrix += attn_mask.unsqueeze(1)
-
-        uncomposed_attention = attn_feature_matrix.softmax(dim=-1)
-
-        attn_feature_matrix = self._compose(attn_information=attn_feature_matrix,
-                                            query=query, key=key, projection_type='pre')
         attn_probs = attn_feature_matrix.softmax(dim=-1)
         pre_composed_attention = attn_probs
         attn_probs = self._dropout(attn_probs)
@@ -388,7 +390,6 @@ class DynamicallyComposedMultiHeadAttentionWrapper(nn.Module):
             key_padding_mask=key_padding_mask,
         )[0]
         out = identity + self.proj_drop(out)
-        print(out)
         return out
 
 
@@ -418,6 +419,9 @@ if __name__ == "__main__":
 
     output = model(X_input, key_padding_mask=torch.rand(5, 49) > 0.5)
     print(output.size())
+    print("PyTorch version: ", torch.__version__)
+    print("CUDA version: ", torch.version.cuda)
+    print("cuDNN version: ", torch.backends.cudnn.version())
     # for key, value in output.items():
     #     print(f"Shape of tensor at key '{key}': {value.shape}")
     #     print(f"Minimum value in tensor at key '{key}': {value.min()}")
