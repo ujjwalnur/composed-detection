@@ -15,6 +15,7 @@ class DynamicallyComposedMultiHeadAttention(nn.Module):
                  projection_rank: int = 2,
                  use_bias: bool = True,
                  dropout: float = 0.0,
+                 add_zero_attn: bool = False,
                  ):
         super(DynamicallyComposedMultiHeadAttention, self).__init__()
         if model_dim % num_heads != 0:
@@ -31,6 +32,7 @@ class DynamicallyComposedMultiHeadAttention(nn.Module):
         self._pre_compose_params = nn.ParameterDict(self._initialize_compose_params())
         self._post_compose_params = nn.ParameterDict(self._initialize_compose_params())
         self._dropout = nn.Dropout(dropout)
+        self._add_zero_attn = add_zero_attn  # Initialize add_zero_attn
 
     def _initialize_compose_params(self):
         out = dict()
@@ -93,6 +95,12 @@ class DynamicallyComposedMultiHeadAttention(nn.Module):
         query_projected = self._W_query(query)
         key_projected = self._W_key(key)
         value = self._W_value(value)
+        if self._add_zero_attn:
+            zero_pad = torch.zeros((key_projected.size(0), 1) + key_projected.size()[2:], dtype=key_projected.dtype,
+                                   device=key_projected.device)
+            key_projected = torch.cat((zero_pad, key_projected), dim=1)
+            value = torch.cat((zero_pad, value), dim=1)
+
         attn_feature_matrix = self._compute_attention_logits(query=query_projected, key=key_projected)
 
         if key_padding_mask is not None:
@@ -187,7 +195,7 @@ if __name__ == "__main__":
     model = DynamicallyComposedMultiHeadAttention(
         num_heads=8,
         model_dim=2048,
-
+        add_zero_attn=False
     )
     X_input = torch.randn((5, 49, 2048))
 
