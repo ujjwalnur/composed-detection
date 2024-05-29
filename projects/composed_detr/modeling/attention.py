@@ -1,3 +1,12 @@
+# -*- coding: utf-8 -*-
+
+"""
+This file is authored by Ujjwal.
+It was written at Universitat Hildesheim on May 29, 2024.
+All rights reserved.
+"""
+
+
 import logging
 from typing import Literal, Optional
 
@@ -383,22 +392,22 @@ class DynamicallyComposedMultiHeadAttentionWrapper(nn.Module):
 
 
 if __name__ == "__main__":
-    model = DynamicallyComposedMultiHeadAttention(
-        num_heads=8,
-        model_dim=2048,
-        add_bias_kv=True,
-        dropout=0.2,
-        add_zero_attn=False
-    )
-    X_input = torch.randn((5, 49, 2048))
-
-    output, out2 = model(X_input, X_input, X_input)
-    print(output.size())
-    for key, value in out2.items():
-        print(f"Shape of tensor at key '{key}': {value.shape}")
-        print(f"Minimum value in tensor at key '{key}': {value.min()}")
-        print(f"Maximum value in tensor at key '{key}': {value.max()}")
-        print(f"Sum of elements in tensor at key '{key}' for index [0,0,0,:]: {value[0, 0, 0, :].sum()}")
+    # model = DynamicallyComposedMultiHeadAttention(
+    #     num_heads=8,
+    #     model_dim=2048,
+    #     add_bias_kv=True,
+    #     dropout=0.2,
+    #     add_zero_attn=False
+    # )
+    # X_input = torch.randn((5, 49, 2048))
+    #
+    # output, out2 = model(X_input, X_input, X_input)
+    # print(output.size())
+    # for key, value in out2.items():
+    #     print(f"Shape of tensor at key '{key}': {value.shape}")
+    #     print(f"Minimum value in tensor at key '{key}': {value.min()}")
+    #     print(f"Maximum value in tensor at key '{key}': {value.max()}")
+    #     print(f"Sum of elements in tensor at key '{key}' for index [0,0,0,:]: {value[0, 0, 0, :].sum()}")
 
     model = DynamicallyComposedMultiHeadAttentionWrapper(
         num_heads=8,
@@ -406,9 +415,9 @@ if __name__ == "__main__":
     )
     X_input = torch.randn((5, 49, 2048))
 
-    output = model(X_input)
+    output = model(X_input, key_padding_mask=torch.rand(5,49)>0.5)
     print(output.size())
-    # for key, value in out2.items():
+    # for key, value in output.items():
     #     print(f"Shape of tensor at key '{key}': {value.shape}")
     #     print(f"Minimum value in tensor at key '{key}': {value.min()}")
     #     print(f"Maximum value in tensor at key '{key}': {value.max()}")
