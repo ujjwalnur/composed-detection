@@ -16,7 +16,7 @@
 import torch
 import torch.nn as nn
 
-from detrex.layers import FFN, BaseTransformerLayer, MultiheadAttention, TransformerLayerSequence
+from detrex.layers import FFN, BaseTransformerLayer, TransformerLayerSequence
 from .attention import DynamicallyComposedMultiHeadAttentionWrapper
 
 
