@@ -5,14 +5,21 @@ from detrex.modeling.matcher import HungarianMatcher
 from detrex.modeling.criterion.criterion import SetCriterion
 from detrex.layers.position_embedding import PositionEmbeddingSine
 
-from projects.detr.modeling import (
-    DETR,
-    DetrTransformer,
-    DetrTransformerEncoder,
-    DetrTransformerDecoder,
+# from projects.detr.modeling import (
+#     DETR,
+#     DetrTransformer,
+#     DetrTransformerEncoder,
+#     DetrTransformerDecoder,
+# )
+
+from projects.composed_detr.modeling import (
+ComposedDETR,
+ComposedDetrTransformer,
+ComposedDetrTransformerEncoder,
+ComposedDetrTransformerDecoder
 )
 
-model = L(DETR)(
+model = L(ComposedDETR)(
     backbone=L(ResNet)(
         stem=L(BasicStem)(in_channels=3, out_channels=64, norm="FrozenBN"),
         stages=L(ResNet.make_default_stages)(
@@ -30,8 +37,8 @@ model = L(DETR)(
         temperature=10000,
         normalize=True,
     ),
-    transformer=L(DetrTransformer)(
-        encoder=L(DetrTransformerEncoder)(
+    transformer=L(ComposedDetrTransformer)(
+        encoder=L(ComposedDetrTransformerEncoder)(
             embed_dim=256,
             num_heads=8,
             attn_dropout=0.1,
@@ -40,7 +47,7 @@ model = L(DETR)(
             num_layers=6,
             post_norm=False,
         ),
-        decoder=L(DetrTransformerDecoder)(
+        decoder=L(ComposedDetrTransformerDecoder)(
             embed_dim=256,
             num_heads=8,
             attn_dropout=0.1,
