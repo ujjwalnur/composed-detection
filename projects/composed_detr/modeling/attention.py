@@ -86,28 +86,28 @@ class DynamicallyComposedMultiHeadAttention(nn.Module):
         nn.init.xavier_uniform_(out['kg'])
         return out
 
-    def forward(self, query: torch.Tensor, key: torch.Tensor, value: torch.Tensor, mask=None):
-        """
-
-        Args:
-            query: Ten
-            key:
-            value:
-            mask:
-
-        Returns:
-
-        """
+    def forward(self, query: torch.Tensor, key: torch.Tensor, value: torch.Tensor, key_padding_mask=None,
+                attn_mask=None):
         query_projected = self._W_query(query)
         key_projected = self._W_key(key)
         value = self._W_value(value)
         attn_feature_matrix = self._compute_attention_logits(query=query_projected, key=key_projected)
+
+        if key_padding_mask is not None:
+            attn_feature_matrix.masked_fill_(key_padding_mask.unsqueeze(1).unsqueeze(2), float('-inf'))
+
+        if attn_mask is not None:
+            if attn_mask.dtype == torch.bool:
+                attn_feature_matrix.masked_fill_(attn_mask.unsqueeze(1), float('-inf'))
+            else:
+                attn_feature_matrix += attn_mask.unsqueeze(1)
+
         attn_feature_matrix = self._compose(attn_information=attn_feature_matrix,
                                             query=query, key=key, projection_type='pre')
         attn_probs = attn_feature_matrix.softmax(dim=-1)
         attn_probs = self._compose(attn_information=attn_probs, query=query, key=key,
                                    projection_type='post')
-        print(attn_probs.size())
+
         attn_probs = attn_probs.view(
             attn_probs.size(0),
             self._num_heads,
@@ -160,7 +160,7 @@ class DynamicallyComposedMultiHeadAttention(nn.Module):
         query = query.view(query.size(0), self._num_heads, -1, self._head_dim)
         key = key.view(key.size(0), self._num_heads, -1, self._head_dim)
         scale = self._head_dim ** 0.5  # Normalization factor
-        _attn = torch.einsum('B H T D, B H S D -> B H T S', query, key) /scale
+        _attn = torch.einsum('B H T D, B H S D -> B H T S', query, key) / scale
         return _attn
 
     def _dynamic_weight_projection(self, query: torch.Tensor, key: torch.Tensor,
