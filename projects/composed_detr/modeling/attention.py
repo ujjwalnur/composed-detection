@@ -121,26 +121,74 @@ class DynamicallyComposedMultiHeadAttention(nn.Module):
         nn.init.xavier_uniform_(out['kg'])
         return out
 
+    # def forward(self, query: torch.Tensor, key: torch.Tensor, value: torch.Tensor, key_padding_mask=None,
+    #             attn_mask=None):
+    #     """
+    #     Args:
+    #         query: Tensor containing the query vectors. Shape: (batch_size, sequence_length, hidden_dim).
+    #         key: Tensor containing the key vectors. Shape: (batch_size, sequence_length, hidden_dim).
+    #         value: Tensor containing the value vectors. Shape: (batch_size, sequence_length, hidden_dim).
+    #         key_padding_mask: Tensor containing a mask for padding elements in the key vectors. Shape: (batch_size, sequence_length).
+    #         attn_mask: Tensor containing a mask for preventing certain connections. Shape: (batch_size, sequence_length, sequence_length).
+    #
+    #     Returns:
+    #         output: Tensor containing the output of the forward pass. Shape: (batch_size, sequence_length, hidden_dim).
+    #         attention_dict: Dictionary containing the attention scores at different stages. Dictionary keys:
+    #             - 'uncomposed': Tensor containing the attention scores before composition. Shape: (batch_size, num_heads, sequence_length, sequence_length).
+    #             - 'pre_composed': Tensor containing the attention scores after composition but before dropout. Shape: (batch_size, num_heads, sequence_length, sequence_length).
+    #             - 'post_composed': Tensor containing the attention scores after composition and after dropout. Shape: (batch_size, num_heads, sequence_length, sequence_length).
+    #     """
+    #     if self._add_bias_kv:
+    #         key = key + self._bias_k
+    #         value = value + self._bias_v
+    #     query_projected = self._W_query(query)
+    #     key_projected = self._W_key(key)
+    #     value = self._W_value(value)
+    #     if self._add_zero_attn:
+    #         zero_pad = torch.zeros((key_projected.size(0), 1) + key_projected.size()[2:], dtype=key_projected.dtype,
+    #                                device=key_projected.device)
+    #         key_projected = torch.cat((zero_pad, key_projected), dim=1)
+    #         value = torch.cat((zero_pad, value), dim=1)
+    #
+    #     attn_feature_matrix = self._compute_attention_logits(query=query_projected, key=key_projected)
+    #
+    #     uncomposed_attention = attn_feature_matrix.softmax(dim=-1)
+    #
+    #     attn_feature_matrix = self._compose(attn_information=attn_feature_matrix,
+    #                                         query=query, key=key, projection_type='pre')
+    #     if key_padding_mask is not None:
+    #         attn_feature_matrix.masked_fill_(key_padding_mask.unsqueeze(1).unsqueeze(2), float('-inf'))
+    #
+    #     if attn_mask is not None:
+    #         if attn_mask.dtype == torch.bool:
+    #             attn_feature_matrix.masked_fill_(attn_mask.unsqueeze(1), float('-inf'))
+    #         else:
+    #             attn_feature_matrix += attn_mask.unsqueeze(1)
+    #     attn_probs = attn_feature_matrix.softmax(dim=-1)
+    #     pre_composed_attention = attn_probs
+    #     attn_probs = self._dropout(attn_probs)
+    #     attn_probs = self._compose(attn_information=attn_probs, query=query, key=key,
+    #                                projection_type='post')
+    #     post_composed_attention = attn_probs
+    #     value = value.view(
+    #         value.size(0),
+    #         self._num_heads,
+    #         -1,
+    #         self._head_dim
+    #     )
+    #     output = torch.einsum('B H T S, B H S D -> B H T D', attn_probs, value)
+    #     output = einops.rearrange(output, 'B H S D -> B S (H D)')
+    #     return output, {
+    #         'uncomposed': uncomposed_attention,
+    #         'pre_composed': pre_composed_attention,
+    #         'post_composed': post_composed_attention
+    #     }
+
     def forward(self, query: torch.Tensor, key: torch.Tensor, value: torch.Tensor, key_padding_mask=None,
                 attn_mask=None):
-        """
-        Args:
-            query: Tensor containing the query vectors. Shape: (batch_size, sequence_length, hidden_dim).
-            key: Tensor containing the key vectors. Shape: (batch_size, sequence_length, hidden_dim).
-            value: Tensor containing the value vectors. Shape: (batch_size, sequence_length, hidden_dim).
-            key_padding_mask: Tensor containing a mask for padding elements in the key vectors. Shape: (batch_size, sequence_length).
-            attn_mask: Tensor containing a mask for preventing certain connections. Shape: (batch_size, sequence_length, sequence_length).
-
-        Returns:
-            output: Tensor containing the output of the forward pass. Shape: (batch_size, sequence_length, hidden_dim).
-            attention_dict: Dictionary containing the attention scores at different stages. Dictionary keys:
-                - 'uncomposed': Tensor containing the attention scores before composition. Shape: (batch_size, num_heads, sequence_length, sequence_length).
-                - 'pre_composed': Tensor containing the attention scores after composition but before dropout. Shape: (batch_size, num_heads, sequence_length, sequence_length).
-                - 'post_composed': Tensor containing the attention scores after composition and after dropout. Shape: (batch_size, num_heads, sequence_length, sequence_length).
-        """
         if self._add_bias_kv:
-            key = key + self._bias_k
-            value = value + self._bias_v
+            key = key.add_(self._bias_k)
+            value = value.add_(self._bias_v)
         query_projected = self._W_query(query)
         key_projected = self._W_key(key)
         value = self._W_value(value)
@@ -151,9 +199,6 @@ class DynamicallyComposedMultiHeadAttention(nn.Module):
             value = torch.cat((zero_pad, value), dim=1)
 
         attn_feature_matrix = self._compute_attention_logits(query=query_projected, key=key_projected)
-
-
-
 
         uncomposed_attention = attn_feature_matrix.softmax(dim=-1)
 
@@ -166,7 +211,7 @@ class DynamicallyComposedMultiHeadAttention(nn.Module):
             if attn_mask.dtype == torch.bool:
                 attn_feature_matrix.masked_fill_(attn_mask.unsqueeze(1), float('-inf'))
             else:
-                attn_feature_matrix += attn_mask.unsqueeze(1)
+                attn_feature_matrix.add_(attn_mask.unsqueeze(1))
         attn_probs = attn_feature_matrix.softmax(dim=-1)
         pre_composed_attention = attn_probs
         attn_probs = self._dropout(attn_probs)
@@ -181,6 +226,8 @@ class DynamicallyComposedMultiHeadAttention(nn.Module):
         )
         output = torch.einsum('B H T S, B H S D -> B H T D', attn_probs, value)
         output = einops.rearrange(output, 'B H S D -> B S (H D)')
+        del query_projected, key_projected, attn_feature_matrix, attn_probs, value  # delete unnecessary tensors
+        torch.cuda.empty_cache()  # free up GPU memory
         return output, {
             'uncomposed': uncomposed_attention,
             'pre_composed': pre_composed_attention,

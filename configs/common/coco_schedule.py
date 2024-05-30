@@ -1,10 +1,9 @@
-from fvcore.common.param_scheduler import MultiStepParamScheduler
-
 from detectron2.config import LazyCall as L
 from detectron2.solver import WarmupParamScheduler
+from fvcore.common.param_scheduler import MultiStepParamScheduler
 
 
-def default_X_scheduler(num_X):
+def default_X_scheduler(num_X, batch_size):
     """
     Returns the config for a default multi-step LR scheduler such as "1x", "3x",
     commonly referred to in papers, where every 1x has the total length of 1440k
@@ -12,11 +11,12 @@ def default_X_scheduler(num_X):
     following the strategy defined in "Rethinking ImageNet Pretraining", Sec 4.
     Args:
         num_X: a positive real number
+        batch_size: the batch size
     Returns:
         DictConfig: configs that define the multiplier for LR during training
     """
     # total number of iterations assuming 16 batch size, using 1440000/16=90000
-    total_steps_16bs = num_X * 90000
+    total_steps_bs = num_X * (1440000 / batch_size)
 
     if num_X <= 2:
         scheduler = L(MultiStepParamScheduler)(
@@ -28,17 +28,17 @@ def default_X_scheduler(num_X):
     else:
         scheduler = L(MultiStepParamScheduler)(
             values=[1.0, 0.1, 0.01],
-            milestones=[total_steps_16bs - 60000, total_steps_16bs - 20000, total_steps_16bs],
+            milestones=[total_steps_bs - 60000, total_steps_bs - 20000, total_steps_bs],
         )
     return L(WarmupParamScheduler)(
         scheduler=scheduler,
-        warmup_length=1000 / total_steps_16bs,
+        warmup_length=1000 / total_steps_bs,
         warmup_method="linear",
         warmup_factor=0.001,
     )
 
 
-def default_coco_scheduler(epochs=50, decay_epochs=40, warmup_epochs=0):
+def default_coco_scheduler(epochs=50, decay_epochs=40, warmup_epochs=0, batch_size=16):
     """
     Returns the config for a default multi-step LR scheduler such as "50epochs",
     commonly referred to in papers, where every 1x has the total length of 1440k
@@ -48,40 +48,41 @@ def default_coco_scheduler(epochs=50, decay_epochs=40, warmup_epochs=0):
         epochs (int): total training epochs.
         decay_epochs (int): lr decay steps.
         warmup_epochs (int): warmup epochs.
+        batch_size (int): the batch size
 
     Returns:
         DictConfig: configs that define the multiplier for LR during training
     """
     # total number of iterations assuming 16 batch size, using 1440000/16=90000
-    total_steps_16bs = epochs * 7500
-    decay_steps = decay_epochs * 7500
-    warmup_steps = warmup_epochs * 7500
+    total_steps_bs = epochs * (1440000 / batch_size)
+    decay_steps = decay_epochs * (1440000 / batch_size)
+    warmup_steps = warmup_epochs * (1440000 / batch_size)
     scheduler = L(MultiStepParamScheduler)(
         values=[1.0, 0.1],
-        milestones=[decay_steps, total_steps_16bs],
+        milestones=[decay_steps, total_steps_bs],
     )
     return L(WarmupParamScheduler)(
         scheduler=scheduler,
-        warmup_length=warmup_steps / total_steps_16bs,
+        warmup_length=warmup_steps / total_steps_bs,
         warmup_method="linear",
         warmup_factor=0.001,
     )
 
 
 # default coco scheduler
-lr_multiplier_1x = default_X_scheduler(1)
-lr_multiplier_2x = default_X_scheduler(2)
-lr_multiplier_3x = default_X_scheduler(3)
-lr_multiplier_6x = default_X_scheduler(6)
-lr_multiplier_9x = default_X_scheduler(9)
-
+lr_multiplier_1x = default_X_scheduler(1, 16)
+lr_multiplier_2x = default_X_scheduler(2, 16)
+lr_multiplier_3x = default_X_scheduler(3, 16)
+lr_multiplier_6x = default_X_scheduler(6, 16)
+lr_multiplier_9x = default_X_scheduler(9, 16)
 
 # default scheduler for detr
-lr_multiplier_50ep = default_coco_scheduler(50, 40, 0)
-lr_multiplier_36ep = default_coco_scheduler(36, 30, 0)
-lr_multiplier_24ep = default_coco_scheduler(24, 20, 0)
-lr_multiplier_12ep = default_coco_scheduler(12, 11, 0)
+lr_multiplier_50ep = default_coco_scheduler(50, 40, 0, 2)
+lr_multiplier_36ep = default_coco_scheduler(36, 30, 0, 16)
+lr_multiplier_24ep = default_coco_scheduler(24, 20, 0, 16)
+lr_multiplier_12ep = default_coco_scheduler(12, 11, 0, 16)
 
 # warmup scheduler for detr
-lr_multiplier_50ep_warmup = default_coco_scheduler(50, 40, 1e-3)
-lr_multiplier_12ep_warmup = default_coco_scheduler(12, 11, 1e-3)
+lr_multiplier_50ep_warmup = default_coco_scheduler(50, 40, 1e-3, 16)
+lr_multiplier_12ep_warmup = default_coco_scheduler(12, 11, 1e-3, 16)
+

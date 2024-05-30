@@ -29,7 +29,7 @@ from detrex.layers.mlp import MLP
 
 from detectron2.modeling import detector_postprocess
 from detectron2.structures import Boxes, ImageList, Instances
-
+from torch.utils.checkpoint import checkpoint
 
 class ComposedDETR(nn.Module):
     """Implement DETR in `End-to-End Object Detection with Transformers
@@ -143,6 +143,7 @@ class ComposedDETR(nn.Module):
         pos_embed = self.position_embedding(img_masks)
 
         hidden_states, _ = self.transformer(features, img_masks, self.query_embed.weight, pos_embed)
+        # hidden_states, _ = checkpoint(self.transformer, features, img_masks, self.query_embed.weight, pos_embed)
 
         outputs_class = self.class_embed(hidden_states)
         outputs_coord = self.bbox_embed(hidden_states).sigmoid()
