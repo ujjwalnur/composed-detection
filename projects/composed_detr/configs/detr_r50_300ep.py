@@ -15,11 +15,12 @@ train.output_dir = "./pre_trained/detr_r50_300ep"
 
 # modify optimizer config
 optimizer.weight_decay = 1e-4
+optimizer.lr = 1e-4 * 3
 optimizer.params.lr_factor_func = lambda module_name: 0.1 if "backbone" in module_name else 1
 
 # modify dataloader config
 dataloader.train.num_workers = 32
-dataloader.train.total_batch_size = 4
+dataloader.train.total_batch_size = 12
 train.checkpointer.period = 118000 // dataloader.train.total_batch_size
 train.eval_period = 118000 // dataloader.train.total_batch_size
 train.log_period = 500
