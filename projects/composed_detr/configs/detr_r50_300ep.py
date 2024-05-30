@@ -22,7 +22,7 @@ dataloader.train.num_workers = 32
 dataloader.train.total_batch_size = 4
 train.checkpointer.period = 118000 // dataloader.train.total_batch_size
 train.eval_period = 118000 // dataloader.train.total_batch_size
-train.log_period = 50
+train.log_period = 500
 lr_multiplier = get_config('common/coco_schedule.py').lr_multiplier_50ep
 lr_multiplier.scheduler.milestones = [118000 // dataloader.train.total_batch_size * 50,
                                       118000 // dataloader.train.total_batch_size * 75]
