@@ -269,7 +269,8 @@ class DynamicallyComposedMultiHeadAttention(nn.Module):
         o_kg = torch.einsum('B H T S, B S H -> B H T S', attn_information,
                             nn.functional.tanh(key @ projection_params['kg']))
 
-        return attn_information + o_qp + o_kp + o_qg + o_kg
+        return torch.stack([attn_information, o_qp, o_kp, o_qg, o_kg]).sum(dim=0)
+
 
     def _compute_attention_logits(self, query: torch.Tensor, key: torch.Tensor) -> torch.Tensor:
         """
